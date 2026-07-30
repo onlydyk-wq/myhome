@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>프로필 생성기</title>
+<style>
+  :root{
+    --bg:#f9f8f6; --surface:#ffffff; --text:#1c1c1e; --muted:#6b6b6f;
+    --border:#e7e4de; --accent:#b08d57;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--bg);color:var(--text);}
+  .app{display:grid;grid-template-columns:380px 1fr;min-height:100vh;}
+  @media (max-width:900px){.app{grid-template-columns:1fr;}}
+
+  /* ---------- Form panel ---------- */
+  .panel{background:var(--surface);border-right:1px solid var(--border);padding:24px;overflow-y:auto;max-height:100vh;}
+  .panel h1{font-size:18px;margin:0 0 4px;}
+  .panel .sub{font-size:12px;color:var(--muted);margin:0 0 20px;}
+  fieldset{border:1px solid var(--border);border-radius:10px;margin-bottom:16px;padding:14px;}
+  legend{font-size:12px;font-weight:600;color:var(--muted);padding:0 6px;}
+  label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px;}
+  input[type=text], input[type=email], input[type=url], textarea{
+    width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;
+    font-size:13px;font-family:inherit;background:#fff;color:var(--text);
+  }
+  textarea{resize:vertical;min-height:60px;}
+  input[type=color]{width:44px;height:28px;border:none;padding:0;border-radius:6px;vertical-align:middle;}
+  .row{display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;}
+  .row > div{flex:1;}
+  .small-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;color:var(--muted);}
+  .small-btn:hover{background:#f2f0ec;}
+  .add-btn{width:100%;background:#f2f0ec;border:1px dashed var(--border);border-radius:8px;padding:8px;font-size:12px;color:var(--muted);cursor:pointer;margin-top:6px;}
+  .add-btn:hover{background:#eae7e0;}
+  .export-btn{width:100%;background:var(--text);color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;}
+  .export-btn:hover{opacity:.88;}
+  .hint{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;}
+
+  /* ---------- Preview panel ---------- */
+  .preview-wrap{padding:32px;overflow-y:auto;max-height:100vh;}
+  .preview-frame{background:var(--surface);border:1px solid var(--border);border-radius:16px;max-width:720px;margin:0 auto;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.04);}
+
+  /* ---------- Generated profile styles (shared with exported page) ---------- */
+  .profile{padding:0;}
+  .hero{text-align:center;padding:56px 32px 40px;border-bottom:1px solid var(--border);}
+  .avatar{width:88px;height:88px;border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:32px;font-weight:700;background:var(--accent);}
+  .avatar-img{width:88px;height:88px;border-radius:50%;margin:0 auto 20px;display:block;object-fit:cover;box-shadow:0 0 0 3px var(--surface),0 0 0 4px var(--border);}
+  .hero h1{font-size:26px;margin:0 0 6px;font-weight:700;}
+  .hero .role{font-size:14px;color:var(--accent);font-weight:600;margin:0 0 14px;letter-spacing:.02em;}
+  .hero .tagline{font-size:15px;color:var(--muted);max-width:440px;margin:0 auto 24px;line-height:1.6;}
+  .cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .cta a{display:inline-block;padding:9px 18px;border-radius:999px;font-size:13px;text-decoration:none;font-weight:600;}
+  .cta a.primary{background:var(--accent);color:#fff;}
+  .cta a.secondary{border:1px solid var(--border);color:var(--text);}
+  .section{padding:36px 40px;border-bottom:1px solid var(--border);}
+  .section:last-child{border-bottom:none;}
+  .section h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 16px;font-weight:700;}
+  .section p{font-size:14.5px;line-height:1.75;margin:0;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{background:#f2f0ec;border-radius:999px;padding:6px 14px;font-size:12.5px;color:var(--text);}
+  .timeline-item{padding:14px 0;border-bottom:1px dashed var(--border);}
+  .timeline-item:last-child{border-bottom:none;padding-bottom:0;}
+  .timeline-item .period{font-size:11.5px;color:var(--accent);font-weight:700;margin-bottom:2px;}
+  .timeline-item .org{font-size:15px;font-weight:700;margin-bottom:4px;}
+  .timeline-item .desc{font-size:13.5px;color:var(--muted);line-height:1.6;}
+  .contact-list{list-style:none;padding:0;margin:0;font-size:14px;}
+  .contact-list li{padding:6px 0;}
+  .contact-list a{color:var(--text);text-decoration:none;border-bottom:1px solid var(--accent);}
+  .footer{text-align:center;padding:22px;font-size:11.5px;color:var(--muted);}
+  [contenteditable="true"]:hover{outline:1px dashed var(--accent);outline-offset:2px;cursor:text;}
+  .photo-preview-box{display:flex;align-items:center;gap:10px;margin-top:8px;}
+  .photo-preview-box img{width:48px;height:48px;border-radius:50%;object-fit:cover;border:1px solid var(--border);}
+  .check-row{display:flex;align-items:center;gap:8px;}
+  .check-row input[type=checkbox]{width:16px;height:16px;}
+  .check-row label{margin:0;font-size:13px;color:var(--text);}
+
+  /* ---------- Focus Timer widget (shared with exported page) ---------- */
+  .timer-card{background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:28px 20px 24px;text-align:center;transition:background-color .4s ease;}
+  .timer-card.time-up{background:#fee2e2;}
+  .timer-plant-box{width:100%;height:100px;margin:0 auto 20px;border-radius:14px;overflow:hidden;background:#f0fdf4;border:1px solid #dcfce7;box-shadow:inset 0 1px 3px rgba(0,0,0,.05);}
+  .timer-plant-box .ambient-cloud{animation:timer-float 20s ease-in-out infinite;}
+  @keyframes timer-float{0%{transform:translateX(0)}50%{transform:translateX(-20px)}100%{transform:translateX(0)}}
+  .timer-presets{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:22px;}
+  .timer-preset-btn{background:#fff;color:var(--accent);border:1px solid var(--border);font-weight:600;font-size:12.5px;padding:7px 15px;border-radius:999px;cursor:pointer;transition:transform .1s,background .2s;}
+  .timer-preset-btn:hover{background:#f2f0ec;}
+  .timer-preset-btn:active{transform:scale(.95);}
+  .timer-preset-btn.plus{color:var(--muted);border-style:dashed;}
+  .timer-display-wrap{position:relative;display:flex;justify-content:center;align-items:center;margin-bottom:22px;}
+  .timer-center{position:absolute;display:flex;flex-direction:column;align-items:center;}
+  .timer-time{font-size:44px;font-weight:800;color:var(--text);letter-spacing:-1px;font-variant-numeric:tabular-nums;}
+  .timer-message{font-size:12.5px;font-weight:700;color:#ef4444;margin-top:6px;opacity:0;transition:opacity .3s;}
+  .timer-controls{display:flex;justify-content:center;gap:12px;}
+  .timer-btn{border:none;border-radius:14px;padding:13px 22px;font-size:15px;font-weight:700;cursor:pointer;transition:transform .1s,background .2s;flex:1;max-width:150px;}
+  .timer-btn:active{transform:scale(.95);}
+  .timer-btn-reset{background:#e7e4de;color:var(--text);}
+  .timer-btn-reset:hover{background:#ddd9d1;}
+  .timer-btn-start{background:var(--accent);color:#fff;}
+  .timer-btn-start:hover{opacity:.9;}
+  .timer-btn-start.is-running{background:#f59e0b;}
+  .timer-progress-ring{transition:stroke-dashoffset .1s linear,stroke .3s ease;transform:rotate(-90deg);transform-origin:50% 50%;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="panel">
+    <h1>프로필 생성기</h1>
+    <p class="sub">정보를 입력하면 오른쪽에 실시간으로 반영됩니다. 완성되면 "HTML로 다운로드"를 눌러 나만의 프로필 페이지 파일을 저장하세요. 반복해서 다른 사람의 프로필도 새로 만들 수 있습니다.</p>
+
+    <fieldset>
+      <legend>기본 정보</legend>
+      <label>이름</label>
+      <input type="text" id="f-name">
+      <label>직함 / 역할</label>
+      <input type="text" id="f-title">
+      <label>한 줄 소개 (태그라인)</label>
+      <input type="text" id="f-tagline">
+      <label>프로필 사진</label>
+      <input type="file" id="f-photo" accept="image/*">
+      <div class="photo-preview-box" id="photo-preview"></div>
+      <label>아바타 이니셜 (사진이 없을 때 표시, 1~2자)</label>
+      <input type="text" id="f-avatar" maxlength="2">
+      <label>강조 색상</label>
+      <input type="color" id="f-accent">
+    </fieldset>
+
+    <fieldset>
+      <legend>소개글</legend>
+      <label>About</label>
+      <textarea id="f-about"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>핵심 스킬 (쉼표로 구분)</legend>
+      <textarea id="f-skills" style="min-height:40px;"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>경력 / 활동</legend>
+      <div id="exp-list"></div>
+      <button class="add-btn" onclick="addExperience()">+ 경력 항목 추가</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>연락처 / 링크</legend>
+      <label>이메일</label>
+      <input type="text" id="f-email">
+      <div id="link-list"></div>
+      <button class="add-btn" onclick="addLink()">+ 링크 추가</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>도구 위젯</legend>
+      <div class="check-row">
+        <input type="checkbox" id="f-timer">
+        <label for="f-timer">Focus Timer (수업/집중 타이머) 포함</label>
+      </div>
+      <p class="hint">체크하면 프로필 하단에 프리셋 타이머 + 식물 성장 애니메이션 위젯이 추가됩니다. 어떤 프로필을 만들든 재사용 가능합니다.</p>
+    </fieldset>
+
+    <button class="export-btn" onclick="exportHTML()">⬇ HTML로 다운로드</button>
+    <p class="hint">다운로드된 파일을 열면 텍스트를 클릭해 바로 수정할 수 있습니다 (contenteditable). 수정 후 브라우저의 "다른 이름으로 저장"으로 보관하세요.</p>
+  </div>
+
+  <div class="preview-wrap">
+    <div class="preview-frame">
+      <div class="profile" id="preview"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let state = {
+  name: "임기환",
+  title: "프로덕트 매니저",
+  tagline: "일을 잘할 수 있는 업무환경 조성과 지원에 앞장 섭니다.",
+  avatar: "임",
+  photo: null,
+  accent: "#b08d57",
+  about: "다년간 대기업에서 근무하며 익힌 HR과 시스템 노하우를 바탕으로 회사 운영과 업무 지원을 담당하고 있습니다. 실무자가 일에 집중할 수 있는 환경을 만드는 데 관심이 많습니다.",
+  skills: ["기획", "인력관리", "교육", "자료 제작", "컨텐츠 제작", "마케팅"],
+  experiences: [
+    {period:"2013 - 2014", org:"SK텔레콤", desc:"1년간 근무"},
+    {period:"2014 - 2025 (11년)", org:"삼성전자스토어", desc:"스카웃 입사, 인력관리·교육·컨텐츠 제작 등 총괄"}
+  ],
+  email: "gihwan.lim@example.com",
+  links: [
+    {label:"LinkedIn", url:"https://linkedin.com/in/example"},
+    {label:"Instagram", url:"https://instagram.com/example"}
+  ],
+  includeTimer: true
+};
+
+// Focus Timer 위젯 상태 (미리보기가 재렌더링돼도 진행 중인 시간은 유지됩니다)
+let timerState = { totalTime: 0, timeRemaining: 0, interval: null, running: false };
+let tCircle, tCircumference, tStem, tStemLength, tLeafLeft, tLeafRight, tFlower, tSun, tTimeDisplay, tMessage, tBtnToggle, tCard;
+
+function bindBasic(){
+  document.getElementById('f-name').value = state.name;
+  document.getElementById('f-title').value = state.title;
+  document.getElementById('f-tagline').value = state.tagline;
+  document.getElementById('f-avatar').value = state.avatar;
+  document.getElementById('f-accent').value = state.accent;
+  document.getElementById('f-about').value = state.about;
+  document.getElementById('f-skills').value = state.skills.join(', ');
+  document.getElementById('f-email').value = state.email;
+
+  ['f-name','f-title','f-tagline','f-avatar','f-about','f-skills','f-email'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', onBasicChange);
+  });
+  document.getElementById('f-accent').addEventListener('input', onBasicChange);
+  document.getElementById('f-photo').addEventListener('change', handlePhotoUpload);
+  document.getElementById('f-timer').checked = state.includeTimer;
+  document.getElementById('f-timer').addEventListener('change', (e)=>{
+    state.includeTimer = e.target.checked;
+    render();
+  });
+}
+
+function handlePhotoUpload(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  if(!file.type.startsWith('image/')){
+    alert('이미지 파일만 업로드할 수 있습니다.');
+    e.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const img = new Image();
+    img.onload = function(){
+      // 정사각형으로 크롭 + 리사이즈하여 파일 용량을 적절히 유지
+      const size = 400;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const scale = Math.max(size / img.width, size / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+      state.photo = canvas.toDataURL('image/jpeg', 0.87);
+      renderPhotoPreview();
+      render();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePhoto(){
+  state.photo = null;
+  const input = document.getElementById('f-photo');
+  if(input) input.value = '';
+  renderPhotoPreview();
+  render();
+}
+
+function renderPhotoPreview(){
+  const wrap = document.getElementById('photo-preview');
+  if(state.photo){
+    wrap.innerHTML = `<img src="${state.photo}" alt="미리보기"><button class="small-btn" onclick="removePhoto()">사진 삭제</button>`;
+  } else {
+    wrap.innerHTML = `<span class="hint" style="margin:0;">업로드된 사진 없음 — 이니셜 아바타로 표시됩니다.</span>`;
+  }
+}
+
+function onBasicChange(){
+  state.name = document.getElementById('f-name').value;
+  state.title = document.getElementById('f-title').value;
+  state.tagline = document.getElementById('f-tagline').value;
+  state.avatar = document.getElementById('f-avatar').value;
+  state.accent = document.getElementById('f-accent').value;
+  state.about = document.getElementById('f-about').value;
+  state.skills = document.getElementById('f-skills').value.split(',').map(s=>s.trim()).filter(Boolean);
+  state.email = document.getElementById('f-email').value;
+  render();
+}
+
+function renderExpForm(){
+  const wrap = document.getElementById('exp-list');
+  wrap.innerHTML = '';
+  state.experiences.forEach((exp, i)=>{
+    const div = document.createElement('div');
+    div.style.cssText = 'border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:8px;';
+    div.innerHTML = `
+      <div class="row"><div><label>기간</label><input type="text" data-i="${i}" data-f="period" value="${exp.period}"></div></div>
+      <div class="row"><div><label>기관/조직</label><input type="text" data-i="${i}" data-f="org" value="${exp.org}"></div></div>
+      <div class="row"><div><label>설명</label><input type="text" data-i="${i}" data-f="desc" value="${exp.desc}"></div>
+      <button class="small-btn" onclick="removeExperience(${i})">삭제</button></div>
+    `;
+    wrap.appendChild(div);
+  });
+  wrap.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input', (e)=>{
+      const i = e.target.dataset.i, f = e.target.dataset.f;
+      state.experiences[i][f] = e.target.value;
+      render();
+    });
+  });
+}
+
+function addExperience(){
+  state.experiences.push({period:"", org:"", desc:""});
+  renderExpForm(); render();
+}
+function removeExperience(i){
+  state.experiences.splice(i,1);
+  renderExpForm(); render();
+}
+
+function renderLinkForm(){
+  const wrap = document.getElementById('link-list');
+  wrap.innerHTML = '';
+  state.links.forEach((link, i)=>{
+    const div = document.createElement('div');
+    div.className = 'row';
+    div.innerHTML = `
+      <div><label>라벨</label><input type="text" data-i="${i}" data-f="label" value="${link.label}"></div>
+      <div><label>URL</label><input type="text" data-i="${i}" data-f="url" value="${link.url}"></div>
+      <button class="small-btn" onclick="removeLink(${i})">삭제</button>
+    `;
+    wrap.appendChild(div);
+  });
+  wrap.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input', (e)=>{
+      const i = e.target.dataset.i, f = e.target.dataset.f;
+      state.links[i][f] = e.target.value;
+      render();
+    });
+  });
+}
+function addLink(){
+  state.links.push({label:"", url:""});
+  renderLinkForm(); render();
+}
+function removeLink(i){
+  state.links.splice(i,1);
+  renderLinkForm(); render();
+}
+
+function timerSectionHTML(){
+  return `
+  <section class="section" id="timer">
+    <h2>Tools · Focus Timer</h2>
+    <div class="timer-card" id="timer-card">
+      <div class="timer-plant-box">
+        <svg width="100%" height="100%" viewBox="0 0 400 120" preserveAspectRatio="none">
+          <rect width="100%" height="100%" fill="#f0fdf4" />
+          <circle id="t-sun" cx="340" cy="30" r="16" fill="#fde047" style="transition: cx 1s linear;" />
+          <g class="ambient-cloud">
+            <path d="M 50 40 Q 60 30 75 40 Q 90 35 100 45 Q 110 60 90 60 L 50 60 Q 30 60 50 40 Z" fill="#ffffff" opacity="0.9"/>
+            <path d="M 250 50 Q 260 45 270 50 Q 280 40 290 55 Q 300 65 285 65 L 250 65 Q 235 65 250 50 Z" fill="#ffffff" opacity="0.7"/>
+          </g>
+          <ellipse cx="200" cy="110" rx="100" ry="12" fill="#dcfce7" />
+          <ellipse cx="200" cy="110" rx="60" ry="6" fill="#bbf7d0" />
+          <g id="t-plant-group" transform="translate(200, 110)">
+            <path id="t-stem" d="M 0 0 Q -15 -45 0 -90" fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round" style="transition: stroke-dashoffset 1s linear;" />
+            <g transform="translate(-6, -30)">
+              <g id="t-leaf-left" style="transform: scale(0); transform-origin: 0px 0px; transition: transform 1s ease-out;">
+                <path d="M 0 0 C -25 -5 -25 -25 0 0" fill="#4ade80" stroke="#16a34a" stroke-width="1.5" />
+              </g>
+            </g>
+            <g transform="translate(-4, -60)">
+              <g id="t-leaf-right" style="transform: scale(0); transform-origin: 0px 0px; transition: transform 1s ease-out;">
+                <path d="M 0 0 C 25 -5 25 -25 0 0" fill="#4ade80" stroke="#16a34a" stroke-width="1.5" />
+              </g>
+            </g>
+            <g transform="translate(0, -90)">
+              <g id="t-flower" style="transform: scale(0); transform-origin: 0px 0px; transition: transform 1s ease-out;">
+                <path d="M 0 0 C -15 -10 -5 -25 0 -15 C 5 -25 15 -10 0 0" fill="#16a34a" />
+                <circle cx="0" cy="-15" r="5" fill="#fde047" />
+              </g>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="timer-presets">
+        <button class="timer-preset-btn" onclick="timerSet(60)">1분</button>
+        <button class="timer-preset-btn" onclick="timerSet(180)">3분</button>
+        <button class="timer-preset-btn" onclick="timerSet(300)">5분</button>
+        <button class="timer-preset-btn" onclick="timerSet(600)">10분</button>
+        <button class="timer-preset-btn" onclick="timerSet(900)">15분</button>
+        <button class="timer-preset-btn plus" onclick="timerAddTime(30)">+30초</button>
+      </div>
+      <div class="timer-display-wrap">
+        <svg width="220" height="220" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="94" fill="none" stroke="#e5e7eb" stroke-width="12"></circle>
+          <circle id="t-progress" class="timer-progress-ring" cx="110" cy="110" r="94" fill="none" stroke="#10b981" stroke-width="12" stroke-linecap="round"></circle>
+        </svg>
+        <div class="timer-center">
+          <span id="t-time" class="timer-time">00:00</span>
+          <span id="t-message" class="timer-message">시간 종료!</span>
+        </div>
+      </div>
+      <div class="timer-controls">
+        <button id="t-btn-reset" onclick="timerReset()" class="timer-btn timer-btn-reset">초기화</button>
+        <button id="t-btn-toggle" onclick="timerToggle()" class="timer-btn timer-btn-start">시작</button>
+      </div>
+    </div>
+  </section>`;
+}
+
+function formatTimerTime(s){
+  const m = Math.floor(s / 60), sec = s % 60;
+  return `${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+}
+
+function bindTimerDOM(){
+  if(!state.includeTimer) return;
+  tCircle = document.getElementById('t-progress');
+  if(!tCircle) return;
+  tCircumference = tCircle.r.baseVal.value * 2 * Math.PI;
+  tCircle.style.strokeDasharray = `${tCircumference} ${tCircumference}`;
+  tStem = document.getElementById('t-stem');
+  tStemLength = tStem.getTotalLength();
+  tStem.style.strokeDasharray = tStemLength;
+  tLeafLeft = document.getElementById('t-leaf-left');
+  tLeafRight = document.getElementById('t-leaf-right');
+  tFlower = document.getElementById('t-flower');
+  tSun = document.getElementById('t-sun');
+  tTimeDisplay = document.getElementById('t-time');
+  tMessage = document.getElementById('t-message');
+  tBtnToggle = document.getElementById('t-btn-toggle');
+  tCard = document.getElementById('timer-card');
+
+  if(timerState.running){
+    tBtnToggle.textContent = '일시정지';
+    tBtnToggle.classList.add('is-running');
+  } else {
+    tBtnToggle.textContent = (timerState.timeRemaining > 0 && timerState.timeRemaining < timerState.totalTime) ? '계속' : '시작';
+    tBtnToggle.classList.remove('is-running');
+  }
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay(){
+  if(!tCircle) return;
+  const { totalTime, timeRemaining } = timerState;
+  tTimeDisplay.textContent = formatTimerTime(timeRemaining);
+  let progress = totalTime > 0 ? timeRemaining / totalTime : 0;
+  tCircle.style.strokeDashoffset = tCircumference - (progress * tCircumference);
+
+  if(totalTime === 0) tCircle.style.stroke = '#10b981';
+  else if(timeRemaining === 0 || progress <= 0.2) tCircle.style.stroke = '#ef4444';
+  else if(progress <= 0.5) tCircle.style.stroke = '#f59e0b';
+  else tCircle.style.stroke = '#10b981';
+
+  let elapsed = totalTime > 0 ? 1 - progress : 0;
+  tStem.style.strokeDashoffset = tStemLength - (tStemLength * Math.min(1, elapsed / 0.4));
+  tLeafLeft.style.transform = `scale(${Math.max(0, Math.min(1, (elapsed - 0.3) / 0.3))})`;
+  tLeafRight.style.transform = `scale(${Math.max(0, Math.min(1, (elapsed - 0.5) / 0.3))})`;
+  tFlower.style.transform = `scale(${Math.max(0, Math.min(1, (elapsed - 0.7) / 0.3))})`;
+  tSun.setAttribute('cx', 340 - (280 * elapsed));
+}
+
+function timerSet(seconds){
+  clearInterval(timerState.interval);
+  timerState.running = false;
+  timerState.totalTime = seconds;
+  timerState.timeRemaining = seconds;
+  if(tBtnToggle){ tBtnToggle.textContent = '시작'; tBtnToggle.classList.remove('is-running'); }
+  if(tMessage) tMessage.style.opacity = '0';
+  if(tCard) tCard.classList.remove('time-up');
+  updateTimerDisplay();
+}
+
+function timerAddTime(seconds){
+  if(timerState.timeRemaining === 0){
+    if(tMessage) tMessage.style.opacity = '0';
+    if(tCard) tCard.classList.remove('time-up');
+  }
+  timerState.timeRemaining += seconds;
+  timerState.totalTime = timerState.timeRemaining > timerState.totalTime ? timerState.timeRemaining : timerState.totalTime;
+  updateTimerDisplay();
+}
+
+function timerToggle(){
+  if(timerState.running){
+    clearInterval(timerState.interval);
+    timerState.running = false;
+    if(tBtnToggle){ tBtnToggle.textContent = '계속'; tBtnToggle.classList.remove('is-running'); }
+  } else if(timerState.timeRemaining > 0){
+    timerState.running = true;
+    if(tBtnToggle){ tBtnToggle.textContent = '일시정지'; tBtnToggle.classList.add('is-running'); }
+    if(tCard) tCard.classList.remove('time-up');
+    if(tMessage) tMessage.style.opacity = '0';
+    timerState.interval = setInterval(()=>{
+      timerState.timeRemaining--;
+      updateTimerDisplay();
+      if(timerState.timeRemaining <= 0){
+        clearInterval(timerState.interval);
+        timerState.running = false;
+        if(tBtnToggle){ tBtnToggle.textContent = '시작'; tBtnToggle.classList.remove('is-running'); }
+        if(tMessage) tMessage.style.opacity = '1';
+        if(tCard) tCard.classList.add('time-up');
+        playTimerEndSound();
+      }
+    }, 1000);
+  }
+}
+
+function timerReset(){
+  clearInterval(timerState.interval);
+  timerState.running = false;
+  timerState.timeRemaining = 0;
+  timerState.totalTime = 0;
+  if(tBtnToggle){ tBtnToggle.textContent = '시작'; tBtnToggle.classList.remove('is-running'); }
+  if(tMessage) tMessage.style.opacity = '0';
+  if(tCard) tCard.classList.remove('time-up');
+  updateTimerDisplay();
+}
+
+function playTimerEndSound(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    function beep(t){
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(659.25, t);
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.5, t + 0.05);
+      gain.gain.linearRampToValueAtTime(0, t + 0.4);
+      osc.start(t); osc.stop(t + 0.5);
+    }
+    const now = ctx.currentTime;
+    beep(now); beep(now + 0.6); beep(now + 1.2);
+  }catch(e){ console.log('오디오를 재생할 수 없습니다.', e); }
+}
+
+function timerExportCSS(){
+  return `
+  .timer-card{background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:28px 20px 24px;text-align:center;transition:background-color .4s ease;}
+  .timer-card.time-up{background:#fee2e2;}
+  .timer-plant-box{width:100%;height:100px;margin:0 auto 20px;border-radius:14px;overflow:hidden;background:#f0fdf4;border:1px solid #dcfce7;box-shadow:inset 0 1px 3px rgba(0,0,0,.05);}
+  .timer-plant-box .ambient-cloud{animation:timer-float 20s ease-in-out infinite;}
+  @keyframes timer-float{0%{transform:translateX(0)}50%{transform:translateX(-20px)}100%{transform:translateX(0)}}
+  .timer-presets{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:22px;}
+  .timer-preset-btn{background:#fff;color:var(--accent);border:1px solid var(--border);font-weight:600;font-size:12.5px;padding:7px 15px;border-radius:999px;cursor:pointer;transition:transform .1s,background .2s;}
+  .timer-preset-btn:hover{background:#f2f0ec;}
+  .timer-preset-btn:active{transform:scale(.95);}
+  .timer-preset-btn.plus{color:var(--muted);border-style:dashed;}
+  .timer-display-wrap{position:relative;display:flex;justify-content:center;align-items:center;margin-bottom:22px;}
+  .timer-center{position:absolute;display:flex;flex-direction:column;align-items:center;}
+  .timer-time{font-size:44px;font-weight:800;color:var(--text);letter-spacing:-1px;font-variant-numeric:tabular-nums;}
+  .timer-message{font-size:12.5px;font-weight:700;color:#ef4444;margin-top:6px;opacity:0;transition:opacity .3s;}
+  .timer-controls{display:flex;justify-content:center;gap:12px;}
+  .timer-btn{border:none;border-radius:14px;padding:13px 22px;font-size:15px;font-weight:700;cursor:pointer;transition:transform .1s,background .2s;flex:1;max-width:150px;}
+  .timer-btn:active{transform:scale(.95);}
+  .timer-btn-reset{background:#e7e4de;color:var(--text);}
+  .timer-btn-reset:hover{background:#ddd9d1;}
+  .timer-btn-start{background:var(--accent);color:#fff;}
+  .timer-btn-start:hover{opacity:.9;}
+  .timer-btn-start.is-running{background:#f59e0b;}
+  .timer-progress-ring{transition:stroke-dashoffset .1s linear,stroke .3s ease;transform:rotate(-90deg);transform-origin:50% 50%;}`;
+}
+
+function timerExportScript(){
+  return `
+<script>
+(function(){
+  const circle = document.getElementById('t-progress');
+  const radius = circle.r.baseVal.value;
+  const circumference = radius * 2 * Math.PI;
+  circle.style.strokeDasharray = \`\${circumference} \${circumference}\`;
+  circle.style.strokeDashoffset = circumference;
+
+  let totalTime = 0, timeRemaining = 0, timerInterval = null, isRunning = false;
+
+  const timeDisplay = document.getElementById('t-time');
+  const timeMessage = document.getElementById('t-message');
+  const btnToggle = document.getElementById('t-btn-toggle');
+  const card = document.getElementById('timer-card');
+
+  const stem = document.getElementById('t-stem');
+  const leafLeft = document.getElementById('t-leaf-left');
+  const leafRight = document.getElementById('t-leaf-right');
+  const flower = document.getElementById('t-flower');
+  const sun = document.getElementById('t-sun');
+
+  const stemLength = stem.getTotalLength();
+  stem.style.strokeDasharray = stemLength;
+  stem.style.strokeDashoffset = stemLength;
+
+  function formatTime(s){
+    const m = Math.floor(s / 60), sec = s % 60;
+    return \`\${m.toString().padStart(2,'0')}:\${sec.toString().padStart(2,'0')}\`;
+  }
+
+  function updateDisplay(){
+    timeDisplay.textContent = formatTime(timeRemaining);
+    let progress = totalTime > 0 ? timeRemaining / totalTime : 0;
+    circle.style.strokeDashoffset = circumference - (progress * circumference);
+
+    if(totalTime === 0) circle.style.stroke = '#10b981';
+    else if(timeRemaining === 0 || progress <= 0.2) circle.style.stroke = '#ef4444';
+    else if(progress <= 0.5) circle.style.stroke = '#f59e0b';
+    else circle.style.stroke = '#10b981';
+
+    let elapsed = totalTime > 0 ? 1 - progress : 0;
+    stem.style.strokeDashoffset = stemLength - (stemLength * Math.min(1, elapsed / 0.4));
+    leafLeft.style.transform = \`scale(\${Math.max(0, Math.min(1, (elapsed - 0.3) / 0.3))})\`;
+    leafRight.style.transform = \`scale(\${Math.max(0, Math.min(1, (elapsed - 0.5) / 0.3))})\`;
+    flower.style.transform = \`scale(\${Math.max(0, Math.min(1, (elapsed - 0.7) / 0.3))})\`;
+    sun.setAttribute('cx', 340 - (280 * elapsed));
+  }
+
+  window.timerToggle = function(){
+    if(isRunning){
+      clearInterval(timerInterval);
+      isRunning = false;
+      btnToggle.textContent = '계속';
+      btnToggle.classList.remove('is-running');
+    } else if(timeRemaining > 0){
+      isRunning = true;
+      btnToggle.textContent = '일시정지';
+      btnToggle.classList.add('is-running');
+      card.classList.remove('time-up');
+      timeMessage.style.opacity = '0';
+      timerInterval = setInterval(()=>{
+        timeRemaining--;
+        updateDisplay();
+        if(timeRemaining <= 0){
+          clearInterval(timerInterval);
+          isRunning = false;
+          btnToggle.textContent = '시작';
+          btnToggle.classList.remove('is-running');
+          timeMessage.style.opacity = '1';
+          card.classList.add('time-up');
+          playEndSound();
+        }
+      }, 1000);
+    }
+  };
+
+  window.timerReset = function(){
+    clearInterval(timerInterval);
+    isRunning = false;
+    timeRemaining = 0; totalTime = 0;
+    btnToggle.textContent = '시작';
+    btnToggle.classList.remove('is-running');
+    timeMessage.style.opacity = '0';
+    card.classList.remove('time-up');
+    updateDisplay();
+  };
+
+  window.timerSet = function(seconds){
+    clearInterval(timerInterval);
+    isRunning = false;
+    totalTime = seconds; timeRemaining = seconds;
+    btnToggle.textContent = '시작';
+    btnToggle.classList.remove('is-running');
+    timeMessage.style.opacity = '0';
+    card.classList.remove('time-up');
+    updateDisplay();
+  };
+
+  window.timerAddTime = function(seconds){
+    if(timeRemaining === 0){
+      timeMessage.style.opacity = '0';
+      card.classList.remove('time-up');
+    }
+    timeRemaining += seconds;
+    totalTime = timeRemaining > totalTime ? timeRemaining : totalTime;
+    updateDisplay();
+  };
+
+  function playEndSound(){
+    try{
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      function beep(t){
+        const osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(659.25, t);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.5, t + 0.05);
+        gain.gain.linearRampToValueAtTime(0, t + 0.4);
+        osc.start(t); osc.stop(t + 0.5);
+      }
+      const now = ctx.currentTime;
+      beep(now); beep(now + 0.6); beep(now + 1.2);
+    }catch(e){ console.log('오디오를 재생할 수 없습니다.', e); }
+  }
+
+  updateDisplay();
+})();
+<\/script>`;
+}
+
+function profileBodyHTML(editable){
+  const ce = editable ? ' contenteditable="true"' : '';
+  const avatarHTML = state.photo
+    ? `<img class="avatar-img" src="${state.photo}" alt="${state.name}">`
+    : `<div class="avatar">${state.avatar}</div>`;
+  const skillsHTML = state.skills.map(s=>`<span class="chip">${s}</span>`).join('');
+  const expHTML = state.experiences.map(e=>`
+    <div class="timeline-item">
+      <div class="period">${e.period}</div>
+      <div class="org"${ce}>${e.org}</div>
+      <div class="desc"${ce}>${e.desc}</div>
+    </div>`).join('');
+  const linksHTML = state.links.map(l=>`<li>${l.label}: <a href="${l.url}" target="_blank" rel="noopener">${l.url}</a></li>`).join('');
+  return `
+  <header class="hero">
+    ${avatarHTML}
+    <h1${ce}>${state.name}</h1>
+    <p class="role"${ce}>${state.title}</p>
+    <p class="tagline"${ce}>${state.tagline}</p>
+    <div class="cta">
+      <a class="primary" href="mailto:${state.email}">이메일 보내기</a>
+      <a class="secondary" href="#contact">연락처 보기</a>
+    </div>
+  </header>
+  <section class="section">
+    <h2>About</h2>
+    <p${ce}>${state.about}</p>
+  </section>
+  <section class="section">
+    <h2>Core Skills</h2>
+    <div class="chips">${skillsHTML}</div>
+  </section>
+  <section class="section">
+    <h2>Career</h2>
+    ${expHTML}
+  </section>
+  <section class="section" id="contact">
+    <h2>Contact</h2>
+    <ul class="contact-list">
+      <li>Email: <a href="mailto:${state.email}">${state.email}</a></li>
+      ${linksHTML}
+    </ul>
+  </section>
+  ${state.includeTimer ? timerSectionHTML() : ''}
+  <footer class="footer">&copy; 2026 ${state.name}. All rights reserved.</footer>
+  `;
+}
+
+function render(){
+  document.documentElement.style.setProperty('--accent', state.accent);
+  document.getElementById('preview').innerHTML = profileBodyHTML(false);
+  bindTimerDOM();
+}
+
+function exportHTML(){
+  const doc = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${state.name} · ${state.title}</title>
+<style>
+  :root{ --bg:#f9f8f6; --surface:#ffffff; --text:#1c1c1e; --muted:#6b6b6f; --border:#e7e4de; --accent:${state.accent}; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--bg);color:var(--text);}
+  .page{max-width:720px;margin:40px auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.04);}
+  .hero{text-align:center;padding:56px 32px 40px;border-bottom:1px solid var(--border);}
+  .avatar{width:88px;height:88px;border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:32px;font-weight:700;background:var(--accent);}
+  .avatar-img{width:88px;height:88px;border-radius:50%;margin:0 auto 20px;display:block;object-fit:cover;box-shadow:0 0 0 3px var(--surface),0 0 0 4px var(--border);}
+  .hero h1{font-size:26px;margin:0 0 6px;font-weight:700;}
+  .hero .role{font-size:14px;color:var(--accent);font-weight:600;margin:0 0 14px;letter-spacing:.02em;}
+  .hero .tagline{font-size:15px;color:var(--muted);max-width:440px;margin:0 auto 24px;line-height:1.6;}
+  .cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .cta a{display:inline-block;padding:9px 18px;border-radius:999px;font-size:13px;text-decoration:none;font-weight:600;}
+  .cta a.primary{background:var(--accent);color:#fff;}
+  .cta a.secondary{border:1px solid var(--border);color:var(--text);}
+  .section{padding:36px 40px;border-bottom:1px solid var(--border);}
+  .section:last-child{border-bottom:none;}
+  .section h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 16px;font-weight:700;}
+  .section p{font-size:14.5px;line-height:1.75;margin:0;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{background:#f2f0ec;border-radius:999px;padding:6px 14px;font-size:12.5px;color:var(--text);}
+  .timeline-item{padding:14px 0;border-bottom:1px dashed var(--border);}
+  .timeline-item:last-child{border-bottom:none;padding-bottom:0;}
+  .timeline-item .period{font-size:11.5px;color:var(--accent);font-weight:700;margin-bottom:2px;}
+  .timeline-item .org{font-size:15px;font-weight:700;margin-bottom:4px;}
+  .timeline-item .desc{font-size:13.5px;color:var(--muted);line-height:1.6;}
+  .contact-list{list-style:none;padding:0;margin:0;font-size:14px;}
+  .contact-list li{padding:6px 0;}
+  .contact-list a{color:var(--text);text-decoration:none;border-bottom:1px solid var(--accent);}
+  .footer{text-align:center;padding:22px;font-size:11.5px;color:var(--muted);}
+  [contenteditable="true"]:hover{outline:1px dashed var(--accent);outline-offset:2px;cursor:text;}
+  .edit-note{max-width:720px;margin:0 auto 12px;text-align:center;font-size:11.5px;color:var(--muted);}
+  ${state.includeTimer ? timerExportCSS() : ''}
+</style>
+</head>
+<body>
+  <p class="edit-note">✎ 텍스트를 클릭하면 바로 수정할 수 있습니다. 수정 후에는 브라우저 메뉴에서 "다른 이름으로 저장"을 이용해 보관하세요.</p>
+  <div class="page">
+  ${profileBodyHTML(true)}
+  </div>
+  ${state.includeTimer ? timerExportScript() : ''}
+</body>
+</html>`;
+  const blob = new Blob([doc], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (state.name || 'profile') + '.html';
+  a.click();
+}
+
+bindBasic();
+renderExpForm();
+renderLinkForm();
+renderPhotoPreview();
+render();
+</script>
+</body>
+</html>
